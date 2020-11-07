@@ -1,15 +1,32 @@
 {% extends 'base.html' %}
-{% block title %}Log In{% endblock %}
-{% block header %}
-  <h1>Log In</h1>
-{% endblock %}
-
-{% block content %}
-  <form method="post">
-    <label for="username">Username</label>
-    <input name="username" id="username" required>
-    <label for="password">Password</label>
-    <input type="password" name="password" id="password" required>
-    <input type="submit" value="Log In">
+{% block title %} Login {% endblock %}
+{% block body %}
+<h4>Let's login now!</h4>
+<p>Enter your username and password to start SpotiNet</p>
+  <form action="{{ url_for('login')}}", method="POST">
+    <div>
+      {{ form.username(class_='form-control', placeholder='Username', autocomplete='off', autofocus=true)}}
+      <ul>
+        {% for error in form.username.errors %}
+        <li>
+          {{ error }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      {{ form.password(class_='form-control', placeholder='Password')}}
+      <ul>
+        {% for error in form.password.errors %}
+        <li>
+          {{ error }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      {{ form.submit_button }}
+    </div>
+    {{ form.csrf_token }}
   </form>
-{% endblock %}
+  {% endblock %}
