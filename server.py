@@ -12,11 +12,17 @@ import os
   # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response
+from flask import Flask, request, render_template, g, redirect, Response, url_for
+from wtform_fields import *
+from User import User
+from flask_login import LoginManager, login_user, login_required, current_user, logout_user
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 
+# configure flask login
+login = LoginManager(app)
+login.init_app(app)
 
 #
 # The following is a dummy URI that does not connect to a valid database. You will need to modify it to connect to your Part 2 database in order to use the data.
@@ -41,11 +47,11 @@ engine = create_engine(DATABASEURI)
 # Example of running queries in your database
 # Note that this will probably not work if you already have a table named 'test' in your database, containing meaningful data. This is only an example showing you how to run queries in your database using SQLAlchemy.
 #
-engine.execute("""CREATE TABLE IF NOT EXISTS test (
-  id serial,
-  name text
-);""")
-engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
+# engine.execute("""CREATE TABLE IF NOT EXISTS test (
+#   id serial,
+#   name text
+# );""")
+# engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
 
 
 @app.before_request
@@ -167,9 +173,109 @@ def base():
 def another():
   return render_template("another.html")
 
-@app.route('/register')
+#---------------------------------------Register and Login ---------------------------------------------#
+@app.route('/register', methods=['GET','POST'])
 def register():
-  return render_template("register.html")
+  reg_form = RegistrationForm()
+  if reg_form.validate_on_submit():
+    username = reg_form.username.data
+    password = reg_form.password.data
+
+    # check if username exits
+    user_object = User(username, password)
+    if is_registered_user(user_object):
+      return "Someone else has taken this username!"
+    else:
+      register_user(user_object)
+      return redirect(url_for('login'))
+
+  return render_template("register.html", form=reg_form)
+
+# insert the new user data into database
+def register_user(user):
+  cursor = g.conn.execute("INSERT INTO Users (username, password) VALUES (%s, %s)",(user.username, user.password))
+  cursor.close()
+
+# check if the user is registered or not
+def is_registered_user(user):
+  cursor = g.conn.execute("SELECT * FROM Users where username=%s", (user.username))
+  data = cursor.fetchone()
+  cursor.close()
+
+  if data:
+    return True
+  else:
+    return False
+
+@login.user_loader
+def load_user(username):
+  cursor = g.conn.execute("SELECT * FROM Users where username=%s", (username))
+  data = cursor.fetchone()
+  cursor.close()
+
+  if data is None:
+    return None
+  
+  return User(data[1],data[2],data[0])
+
+# check if the user exists or not
+# and then check if the password is valid or not
+def authenticate_user(user):
+  if is_registered_user(user):
+    cursor = g.conn.execute("SELECT * FROM Users where username=%s", (user.username))
+    data = cursor.fetchone()
+    cursor.close()
+
+    if data[2] == user.password:
+      return True
+  else:
+    return False
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+  login_form = LoginForm()
+  if login_form.validate_on_submit():
+    username = login_form.username.data
+    password = login_form.password.data
+
+    # check if password is correct
+    user_object = User(username, password)
+    if authenticate_user(user_object):
+      login_user(user_object)
+      return redirect(url_for('base'))
+    else:
+      return "Wrong username or password. Please try again!"
+
+  return render_template("login.html", form=login_form)
+
+@app.route("/logout", methods=['GET'])
+def logout():
+  logout_user()
+  return "User loggout"
+
+
+
+@app.route("/profile")
+@login_required
+def profile():
+  # wishlist for this user
+  cursor = g.conn.execute("SELECT s.song_name, al.album_name, a.artist_name FROM wishlists w, users u, song_contain s, artists a, al_release al WHERE w.uid=u.uid and w.song_id=s.song_id and w.album_id=al.album_id and w.artist_id=a.artist_id and u.uid=%s",current_user.uid)
+  wishs = []
+  wishs = cursor.fetchall()
+  cursor.close()
+
+  # online concert registration for this user
+  cursor = g.conn.execute("SELECT a.artist_name, r.concert_name, r.concert_time, o.link from registers r, artists a, online_concerts o where r.artist_id=a.artist_id and r.artist_id=o.artist_id and r.concert_name=o.concert_name and r.concert_time=o.concert_time and r.uid=%s", current_user.uid)
+  concert_reg = []
+  concert_reg = cursor.fetchall()
+  cursor.close()
+
+  context = dict(wishs=wishs, concert_reg=concert_reg)
+  return render_template("profile.html", **context)
+
+
+
+
 
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
@@ -179,11 +285,7 @@ def add():
   return redirect('/')
 
 
-@app.route('/login')
-def login():
-  
-    abort(401)
-    this_is_never_executed()
+
 
 
 if __name__ == "__main__":
@@ -206,9 +308,10 @@ if __name__ == "__main__":
         python server.py --help
 
     """
+    app.secret_key = 'hello'
 
     HOST, PORT = host, port
     print("running on %s:%d" % (HOST, PORT))
-    app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
+    app.run(host=HOST, port=PORT, debug=True, threaded=threaded)
 
   run()
