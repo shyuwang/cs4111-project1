@@ -285,7 +285,13 @@ def search():
     songs = None if not request.form.get('songs') else request.form.get('songs')
     albums = None if not request.form.get('albums') else request.form.get('albums')
 
-    cursor = g.conn.execute("SELECT s.song_name, al.album_name, a.artist_name, al.released_date, s.popularity FROM song_contain s, artists a, al_release al WHERE (%s is null OR a.artist_name ILIKE %s) AND (%s is null or s.song_name ILIKE %s) AND (%s is null or al.album_name ILIKE %s) AND s.artist_id=a.artist_id AND s.album_id=al.album_id ORDER BY s.popularity desc LIMIT 5", artists, artists, songs, songs, albums, albums)
+    cursor = g.conn.execute('''SELECT s.song_name, al.album_name, a.artist_name, al.released_date, s.popularity 
+                              FROM song_contain s, artists a, al_release al 
+                              WHERE ('%s' = 'None' OR a.artist_name ILIKE '%%%%%s%%%%') 
+                              AND ('%s' = 'None' or s.song_name ILIKE '%%%%%s%%%%') 
+                              AND ('%s' = 'None' or al.album_name ILIKE '%%%%%s%%%%')
+                              AND s.artist_id=a.artist_id AND s.album_id=al.album_id 
+                              ORDER BY s.popularity desc LIMIT 5'''% (artists, artists, songs, songs, albums, albums))
     search_result = cursor.fetchall()
     cursor.close()
   
