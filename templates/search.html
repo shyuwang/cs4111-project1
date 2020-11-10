@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %} Search {% endblock %}
+{% block body %}
+<h4>Search for artists/songs/albums here!</h4>
+<p>Enter the name of an artist/song/album</p>
+  <form action="{{ url_for('search')}}" class="col s12" method="POST">
+    <div class="col review-form">
+        <div class="input-field col s4">
+          <input placeholder="artist name" id="search-artists" name="artists" type="text" class="validate">
+          <label>Enter an artist name here</label>
+        </div>
+
+        <div class="input-field col s4">
+            <input placeholder="song name" id="search-songs" name="songs" type="text" class="validate">
+            <label>Enter a song name here</label>
+          </div>
+
+        <div class="input-field col s4">
+            <input placeholder="album name" id="search-albums" name="albums" type="text" class="validate">
+            <label>Enter an album name here</label>
+          </div>
+            
+        <button type="submit" name="search">Search</button>
+
+      </div>
+      
+  </form>
+  <div>
+    <h2>Search Results</h2>
+    <div>
+      <table border=2 width="75%">
+        <thead>
+          <tr bgcolor="#dcdcdc">
+              <th>Song</th>
+              <th>Album</th>
+              <th>Artist</th>
+              <th>Date</th>
+              <th>Popularity</th>
+          </tr>
+        </thead>
+
+        <tbody>
+            {% for song_name, album_name, artist_name, released_date, popularity in search_result %}
+            <tr>
+                <td>{{song_name}}</td>
+                <td>{{album_name}}</td>
+                <td>{{artist_name}}</td>
+                <td>{{released_date}}</td>
+                <td>{{popularity}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endblock %}
