@@ -16,6 +16,7 @@ from flask import Flask, request, render_template, g, redirect, Response, url_fo
 from wtform_fields import *
 from User import User
 from flask_login import LoginManager, login_user, login_required, current_user, logout_user
+from datetime import datetime
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -258,19 +259,32 @@ def logout():
 @app.route("/profile")
 @login_required
 def profile():
+  # username for this user
+  cursor = g.conn.execute("select u.username from users u where u.uid=%s",current_user.uid)
+  user_name = []
+  user_name = cursor.fetchone()
+  cursor.close()
+
   # wishlist for this user
-  cursor = g.conn.execute("SELECT s.song_name, al.album_name, a.artist_name FROM wishlists w, users u, song_contain s, artists a, al_release al WHERE w.uid=u.uid and w.song_id=s.song_id and w.album_id=al.album_id and w.artist_id=a.artist_id and u.uid=%s",current_user.uid)
+  cursor = g.conn.execute('''SELECT u.username, s.song_name, al.album_name, a.artist_name 
+                              FROM wishlists w, users u, song_contain s, artists a, al_release al 
+                              WHERE w.uid=u.uid AND w.song_id=s.song_id AND w.album_id=al.album_id 
+                              AND w.artist_id=a.artist_id AND u.uid=%s''',current_user.uid)
   wishs = []
   wishs = cursor.fetchall()
   cursor.close()
 
   # online concert registration for this user
-  cursor = g.conn.execute("SELECT a.artist_name, r.concert_name, r.concert_time, o.link from registers r, artists a, online_concerts o where r.artist_id=a.artist_id and r.artist_id=o.artist_id and r.concert_name=o.concert_name and r.concert_time=o.concert_time and r.uid=%s", current_user.uid)
+  cursor = g.conn.execute('''SELECT a.artist_name, r.concert_name, r.concert_time, o.link 
+                              FROM registers r, artists a, online_concerts o 
+                              WHERE r.artist_id=a.artist_id AND r.artist_id=o.artist_id 
+                              AND r.concert_name=o.concert_name AND r.concert_time=o.concert_time 
+                              AND r.uid=%s''', current_user.uid)
   concert_reg = []
   concert_reg = cursor.fetchall()
   cursor.close()
 
-  context = dict(wishs=wishs, concert_reg=concert_reg)
+  context = dict(wishs=wishs, concert_reg=concert_reg, user_name=user_name)
   return render_template("profile.html", **context)
 
 
@@ -303,6 +317,86 @@ def search():
   context = dict(search_result=search_result)
   
   return render_template("search.html", **context)
+
+
+#-------------------------------------------------review------------------------------------------------------#
+@app.route("/review", methods=['GET','POST'])
+@login_required
+def review():
+  # reviews of certain song by search
+  reviews = []
+  if request.form.get('songs'):
+    songs = request.form.get('songs')
+
+    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'YYYY Month DD')
+                                FROM song_contain s JOIN artists a ON s.artist_id=a.artist_id
+                                LEFT JOIN review_rates r ON r.song_id=s.song_id
+                                LEFT JOIN users u ON  r.uid=u.uid 
+                                WHERE s.song_name ILIKE '%%%%%s%%%%' ''' % (songs))
+    reviews = cursor.fetchall()
+    cursor.close()
+  
+  else:
+    # top 5 reviews order by review_time desc
+    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'YYYY Month DD') 
+                              FROM review_rates r, users u, song_contain s, artists a 
+                              WHERE r.uid=u.uid AND r.song_id=s.song_id AND r.artist_id=a.artist_id
+                              ORDER BY r.review_time DESC LIMIT 5''')
+    reviews = cursor.fetchall()
+    cursor.close()
+
+  # average ratings
+  song_ratings = []
+  cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, ROUND(avg(r.rating),2) as avg_rating
+                              FROM review_rates r, song_contain s, artists a 
+                              WHERE r.song_id=s.song_id AND r.artist_id=a.artist_id
+                              GROUP BY s.song_id,s.song_name, a.artist_name''')
+  song_ratings = cursor.fetchall()
+  cursor.close()
+
+  # song_id and its associated album_id, artist_id
+  song_info = []
+  cursor = g.conn.execute("select song_id, album_id, artist_id from song_contain")
+  song_info = cursor.fetchall()
+  cursor.close()
+
+  context = dict(reviews=reviews, song_ratings=song_ratings, song_info=song_info)
+  return render_template("review.html", **context)
+
+@app.route('/write_review', methods=['POST'])
+def write_review():
+  uid = current_user.uid
+  review_time = datetime.now()
+
+  # check if the user has already reviewed the song. if yes, update the review, if no, add new review
+  result = g.conn.execute('''UPDATE Review_Rates 
+                              SET rating=%s, review_text=%s, review_time=%s 
+                              WHERE uid=%s AND song_id=%s''', (request.form['rating'], request.form['text'], review_time, uid, request.form['song_id']))
+
+  if result.rowcount == 0:
+    g.conn.execute('''INSERT INTO Review_Rates (uid, song_id, album_id, artist_id, review_time, review_text, rating) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)''', (uid, request.form['song_id'], request.form['album_id'], request.form['artist_id'], review_time, request.form['text'], request.form['rating']))
+
+  return redirect('/review')
+
+@app.route('/add_to_wishlist', methods=['POST'])
+def add_to_wishlist():
+  uid = current_user.uid
+  song_id = request.form['song_id']
+
+  result = g.conn.execute('''UPDATE Wishlists
+                              SET uid=%s
+                              WHERE uid=%s and song_id=%s''', (uid, uid, song_id))
+  
+  # check if the song is already in wishlist or not. if not, add it to the wishlist
+  if result.rowcount == 0:
+    g.conn.execute('''INSERT INTO Wishlists (uid, song_id, album_id, artist_id)
+                      VALUES (%s, %s, %s, %s)''', (uid, song_id, request.form['album_id'], request.form['artist_id']))
+    
+  return redirect('/review')
+
+
+
 
 
 # Example of adding new data to the database

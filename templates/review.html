@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %} Review {% endblock %}
+{% block body %}
+<div class="row">
+    <div class="container">
+        <h2>Song Reviews</h2>
+        <!---search to review-->
+        <p>See our latest community reviews! Or search to view reviews for the songs you are interested in!</p>
+        <form action="{{ url_for('review')}}" class="col s12" method="POST">
+            <div class="col review-form">
+                <div class="input-field col s4">
+                    <input placeholder="song name" id="search-songs" name="songs" type="text" class="validate">
+                </div>
+                <br>
+                <button type="submit" class="btn btn-primary" name="view">View</button>
+                
+            </div>
+            <br>
+        </form>
+    </div>
+
+    {% for song_id, song_name, artist_name, username, review_text, rating, review_time in reviews %}
+    <div class="container">
+        <div class="card">
+            <div class="card-content">
+                <p>
+                    {{song_name}} By {{artist_name}}
+                    <br>
+                    {{username}}: {{rating}}
+                    <br>
+                    {{review_text}}
+                    <br>
+                    on {{review_time}}
+                    <br>
+                </p>
+                <!-- SpotiNet overall rating -->
+                <p class="rating">SpotiNet Rating:
+                    {% for song_id2, song_name, artist_name, avg_rating in song_ratings %}
+                    {% if song_id2 == song_id %}
+                    {{ avg_rating }}
+                    {% endif %}
+                    {% endfor %}
+                </p>
+                <a class="write-review-trigger" data-toggle="modal" href="#write-review-{{song_id}}">Write Review</a>
+                <br>
+                <a class="add-to-wishlist-trigger" data-toggle="modal" href="#add-{{song_id}}">Add to Wishlist</a>
+
+                <!----Modal to write review-->
+                <div class="modal" id="write-review-{{song_id}}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="ModalLabel">Write my review for: {{ song_name }} by
+                                {{ artist_name }}</h5>
+                        </div>
+                        <div class="modal-body">
+
+                            <form method="POST" action="/write_review" class="col s12">
+                                <div class="row review-form">
+                                    <!-- Review: song_id (used for update/insert) -->
+                                    <div class="input-field col s12 hide">
+                                        <input value="{{ song_id }}" id="songid" name="song_id" type="text"
+                                            class="validate">
+                                        <label>song_id</label>
+                                    </div>
+                                    <!-- Review: album_id, artist_id (used for update/insert) -->
+                                    <div class="input-field col s12 hide">
+                                        {% for song_id3, album_id, artist_id in song_info %}
+                                        {% if song_id3==song_id %}
+                                        <input value="{{ album_id }}" id="albumid" name="album_id" type="text"
+                                            class="validate">
+                                        <label>album_id</label>
+                                        <input value="{{ artist_id }}" id="artistid" name="artist_id" type="text"
+                                            class="validate">
+                                        <label>artist_id</label>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- select rating -->
+                                    <div class="input-field col s12">
+                                        <select name="rating">
+                                            <option value="" disabled selected>Choose your rating</option>
+                                            <option value="1" selected="selected">1</option>
+                                            <option value="2" selected="selected">2</option>
+                                            <option value="3" selected="selected">3</option>
+                                            <option value="4" selected="selected">4</option>
+                                            <option value="5" selected="selected">5</option>
+                                            <option value="6" selected="selected">6</option>
+                                            <option value="7" selected="selected">7</option>
+                                            <option value="8" selected="selected">8</option>
+                                            <option value="9" selected="selected">9</option>
+                                            <option value="10" selected="selected">10</option>
+                                        </select>
+                                        <label>Rating</label>
+                                    </div>
+                                    <!-- input text -->
+                                    <div class="input-field col s12">
+                                        <textarea placeholder="My review" id="review-text" name="text"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Commit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!----Modal to add songs to wishlist-->
+                <div class="modal" id="add-{{song_id}}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="ModalLabel2">Hello there!</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST" action="/add_to_wishlist" class="col s12">
+                                <h4>You are adding {{ song_name }} by {{ artist_name }} to Wishlist.</h4>
+                                <div class="row add-to-wishlist-form">
+                                    <!---- song_id (used for update/insert) ---->
+                                    <div class="input-field col s12 hide">
+                                        <input value="{{ song_id }}" id="songid" name="song_id" type="text"
+                                            class="validate">
+                                        <label>song_id</label>
+                                    </div>
+                                    <!---- album_id, artist_id (used for update/insert) ---->
+                                    <div class="input-field col s12 hide">
+                                        {% for song_id3, album_id, artist_id in song_info %}
+                                        {% if song_id3==song_id %}
+                                        <input value="{{ album_id }}" id="albumid" name="album_id" type="text"
+                                            class="validate">
+                                        <label>album_id</label>
+                                        <input value="{{ artist_id }}" id="artistid" name="artist_id" type="text"
+                                            class="validate">
+                                        <label>artist_id</label>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Commit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+    </div>
+
+    {% endfor %}
+</div>
+{% endblock %}
