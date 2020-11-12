@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% block title %} Login {% endblock %}
 {% block body %}
+<div class="container">
 <h4>Let's login now!</h4>
-<p>Enter your username and password to start SpotiNet</p>
+<p>Enter your username and password to start exploring SpotiNet</p>
+</div>
   <form action="{{ url_for('login')}}", method="POST">
-    <div>
+    <div class="container">
       {{ form.username(class_='form-control', placeholder='Username', autocomplete='off', autofocus=true)}}
       <ul>
         {% for error in form.username.errors %}
@@ -14,7 +16,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div>
+    <div class="container">
       {{ form.password(class_='form-control', placeholder='Password')}}
       <ul>
         {% for error in form.password.errors %}
@@ -24,9 +26,10 @@
         {% endfor %}
       </ul>
     </div>
-    <div>
+    <div class="container">
       {{ form.submit_button }}
     </div>
     {{ form.csrf_token }}
   </form>
+  <br>
   {% endblock %}
