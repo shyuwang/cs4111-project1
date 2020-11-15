@@ -33,24 +33,23 @@
                 Concert Link: <a href={{link}}>{{link}}</a>
                 <br>
                 </p>
-
+                
                 <a class="register-concert-trigger" data-toggle="modal" href="#add-{{ artist_name |replace(' ','-')}}-{{concert_time|replace(' ','-')|replace(':','-')}}">Register for the
                     Concert</a>
-                <!-- Button trigger modal -->
 
                 <!----Modal to register for online concerts-->
                 <div class="modal" id="add-{{ artist_name |replace(' ','-')}}-{{concert_time|replace(' ','-')|replace(':','-')}}">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="ModalLabel3">Hello {{user_name}}!</h5>
+                            <h5 class="modal-title" id="ModalLabel3">Hello <i>{{user_name}}</i>!</h5>
                         </div>
                         <div class="modal-body">
                             <form method="POST" action="/register_concert" class="col s12">
-                                <h5>You are registering for {{ concert_name }} by {{ artist_name }} on {{concert_time}}.
+                                <h5>You are registering for {{ concert_name }} <i>by {{ artist_name }}</i> on {{concert_time}}.
                                 </h5>
                                 <div class="row register-concert-form">
                                     <!---- concert_name & concert_time (used for update/insert) ---->
-                                    <div hidden class="input-field col s12">
+                                    <div hidden>
                                         <input value="{{ concert_name }}" id="concertname" name="concert_name"
                                             type="text" class="validate">
                                         <label>concert name</label>
@@ -59,7 +58,7 @@
                                         <label>concert time</label>
                                     </div>
                                     <!---- artist_id (used for update/insert) ---->
-                                    <div hidden class="input-field col s12">
+                                    <div hidden>
                                         {% for artist_id, concert_name2, concert_time2 in concert_info %}
                                         {% if concert_name2==concert_name and concert_time2==concert_time %}
                                         <input value="{{ artist_id }}" id="artistid" name="artist_id" type="text"
@@ -78,14 +77,9 @@
                         </div>
                     </div>
                 </div>
-
-
-
             </div>
         </div>
-
     </div>
-
     {% endfor %}
     {% endfor %}
 </div>

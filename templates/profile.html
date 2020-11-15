@@ -3,10 +3,10 @@
 {% block body %}
 
 <div class="container">
-  <h2>My Wishlist</h2>
   {% for username in user_name %}
-  <p>Username: {{username}}</p>
+  <p>Hello <b>{{username}}</b></p>
   {% endfor %}
+  <h2>My Wishlist</h2>
   <div>
     <table border=2 width="75%">
       <thead>
@@ -53,7 +53,34 @@
           <td>{{concert_time}}</td>
           <td>{{link}}</td>
         </tr>
+      </tbody>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+<br>
 
+<div class="container">
+  <h2>Recommendations</h2>
+  <div>
+    <table border=2 width="75%">
+      <thead>
+        <tr bgcolor="#dcdcdc">
+          <th>Song</th>
+          <th>Album</th>
+          <th>Artist</th>
+          <th>Popularity</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for song_name, album_name, artist_time, popularity in recommendations %}
+        <tr>
+          <td>{{song_name}}</td>
+          <td>{{album_name}}</td>
+          <td>{{artist_time}}</td>
+          <td>{{popularity}}</td>
+        </tr>
       </tbody>
       {% endfor %}
     </table>

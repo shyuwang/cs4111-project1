@@ -44,16 +44,6 @@ DATABASEURI = "postgresql://sw3449:6294@34.75.150.200/proj1part2"
 #
 engine = create_engine(DATABASEURI)
 
-#
-# Example of running queries in your database
-# Note that this will probably not work if you already have a table named 'test' in your database, containing meaningful data. This is only an example showing you how to run queries in your database using SQLAlchemy.
-#
-# engine.execute("""CREATE TABLE IF NOT EXISTS test (
-#   id serial,
-#   name text
-# );""")
-# engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
-
 
 @app.before_request
 def before_request():
@@ -86,93 +76,6 @@ def teardown_request(exception):
 def base():
   return render_template("base.html")
 
-#
-# @app.route is a decorator around index() that means:
-#   run index() whenever the user tries to access the "/" path using a GET request
-#
-# If you wanted the user to go to, for example, localhost:8111/foobar/ with POST or GET then you could use:
-#
-#       @app.route("/foobar/", methods=["POST", "GET"])
-#
-# PROTIP: (the trailing / in the path is important)
-# 
-# see for routing: http://flask.pocoo.org/docs/0.10/quickstart/#routing
-# see for decorators: http://simeonfranklin.com/blog/2012/jul/1/python-decorators-in-12-steps/
-#
-
-###############################################################################################
-# @app.route('/')
-# def index():
-#   """
-#   request is a special object that Flask provides to access web request information:
-
-#   request.method:   "GET" or "POST"
-#   request.form:     if the browser submitted a form, this contains the data in the form
-#   request.args:     dictionary of URL arguments, e.g., {a:1, b:2} for http://localhost?a=1&b=2
-
-#   See its API: http://flask.pocoo.org/docs/0.10/api/#incoming-request-data
-#   """
-
-#   # DEBUG: this is debugging code to see what request looks like
-#   print(request.args)
-
-
-#   #
-#   # example of a database query
-#   #
-#   cursor = g.conn.execute("SELECT name FROM test")
-#   names = []
-#   for result in cursor:
-#     names.append(result['name'])  # can also be accessed using result[0]
-#   cursor.close()
-
-  #
-  # Flask uses Jinja templates, which is an extension to HTML where you can
-  # pass data to a template and dynamically generate HTML based on the data
-  # (you can think of it as simple PHP)
-  # documentation: https://realpython.com/blog/python/primer-on-jinja-templating/
-  #
-  # You can see an example template in templates/index.html
-  #
-  # context are the variables that are passed to the template.
-  # for example, "data" key in the context variable defined below will be 
-  # accessible as a variable in index.html:
-  #
-  #     # will print: [u'grace hopper', u'alan turing', u'ada lovelace']
-  #     <div>{{data}}</div>
-  #     
-  #     # creates a <div> tag for each element in data
-  #     # will print: 
-  #     #
-  #     #   <div>grace hopper</div>
-  #     #   <div>alan turing</div>
-  #     #   <div>ada lovelace</div>
-  #     #
-  #     {% for n in data %}
-  #     <div>{{n}}</div>
-  #     {% endfor %}
-  #
-  # context = dict(data = names)
-
-
-  #
-  # render_template looks in the templates/ folder for files.
-  # for example, the below file reads template/index.html
-  #
-  # return render_template("index.html", **context)
-######################################################################################################
-
-#
-# This is an example of a different path.  You can see it at:
-# 
-#     localhost:8111/another
-#
-# Notice that the function name is another() rather than index()
-# The functions for each app.route need to have different names
-#
-@app.route('/another')
-def another():
-  return render_template("another.html")
 
 #---------------------------------------Register and Login ---------------------------------------------#
 @app.route('/register', methods=['GET','POST'])
@@ -252,7 +155,7 @@ def login():
 @app.route("/logout", methods=['GET'])
 def logout():
   logout_user()
-  return "User loggout"
+  return redirect(url_for('base'))
 
 
 
@@ -284,7 +187,22 @@ def profile():
   concert_reg = cursor.fetchall()
   cursor.close()
 
-  context = dict(wishs=wishs, concert_reg=concert_reg, user_name=user_name)
+  # recommendation based on this user's wishlist
+  # recommend songs whose artists are of the same genre the user likes
+  cursor = g.conn.execute('''
+                            SELECT DISTINCT s.song_name, al.album_name, t.artist_name, s.popularity
+                            FROM (SELECT artist_id, artist_name, UNNEST(genres) as g FROM artists) t 
+                            JOIN Song_contain s ON t.artist_id=s.artist_id
+                            JOIN Al_release al ON s.album_id=al.album_id
+                            WHERE t.g IN (SELECT UNNEST(genres) FROM Artists WHERE artist_id IN (SELECT artist_id FROM Wishlists WHERE uid=%s))
+                            AND s.song_id NOT IN (SELECT song_id FROM Wishlists WHERE uid=%s)
+                            ORDER BY s.popularity DESC LIMIT 5 ''', current_user.uid,current_user.uid)
+  
+  recommendations = []
+  recommendations = cursor.fetchall()
+  cursor.close()
+
+  context = dict(wishs=wishs, concert_reg=concert_reg, user_name=user_name, recommendations=recommendations)
   return render_template("profile.html", **context)
 
 
@@ -305,7 +223,7 @@ def search():
                               AND ('%s' = 'None' or s.song_name ILIKE '%%%%%s%%%%') 
                               AND ('%s' = 'None' or al.album_name ILIKE '%%%%%s%%%%')
                               AND s.artist_id=a.artist_id AND s.album_id=al.album_id 
-                              ORDER BY s.popularity desc LIMIT 5'''% (artists, artists, songs, songs, albums, albums))
+                              ORDER BY s.popularity desc'''% (artists, artists, songs, songs, albums, albums))
     search_result = cursor.fetchall()
     cursor.close()
   
@@ -328,7 +246,7 @@ def review():
   if request.form.get('songs'):
     songs = request.form.get('songs')
 
-    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'YYYY Month DD')
+    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'Month DD YYYY')
                                 FROM song_contain s JOIN artists a ON s.artist_id=a.artist_id
                                 LEFT JOIN review_rates r ON r.song_id=s.song_id
                                 LEFT JOIN users u ON  r.uid=u.uid 
@@ -338,7 +256,7 @@ def review():
   
   else:
     # top 5 reviews order by review_time desc
-    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'YYYY Month DD') 
+    cursor = g.conn.execute('''SELECT s.song_id, s.song_name, a.artist_name, u.username, r.review_text, r.rating, to_char(r.review_time, 'Month DD YYYY') 
                               FROM review_rates r, users u, song_contain s, artists a 
                               WHERE r.uid=u.uid AND r.song_id=s.song_id AND r.artist_id=a.artist_id
                               ORDER BY r.review_time DESC LIMIT 5''')
@@ -403,7 +321,6 @@ def add_to_wishlist():
 
 
 #------------------------------------------online concert------------------------------------------------------#
-
 @app.route("/concert", methods=['GET','POST'])
 @login_required
 def concert():
@@ -458,19 +375,6 @@ def register_concert():
                       VALUES (%s, %s, %s, %s)''', (request.form['artist_id'], cname, ctime, uid))
     
   return redirect('/concert')
-
-
-
-
-
-# Example of adding new data to the database
-@app.route('/add', methods=['POST'])
-def add():
-  name = request.form['name']
-  g.conn.execute('INSERT INTO test(name) VALUES (%s)', name)
-  return redirect('/')
-
-
 
 
 
