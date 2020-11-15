@@ -19,12 +19,13 @@
         </form>
     </div>
 
+    {% for user_name in user_name %}
     {% for song_id, song_name, artist_name, username, review_text, rating, review_time in reviews %}
     <div class="container">
         <div class="card">
             <div class="card-content">
                 <p>
-                    {{song_name}} By {{artist_name}}
+                    <h5>{{song_name}}</h5> By {{artist_name}}
                     <br>
                     {{username}}: {{rating}}
                     <br>
@@ -57,13 +58,13 @@
                             <form method="POST" action="/write_review" class="col s12">
                                 <div class="row review-form">
                                     <!-- Review: song_id (used for update/insert) -->
-                                    <div class="input-field col s12 hide">
+                                    <div hidden class="input-field col s12">
                                         <input value="{{ song_id }}" id="songid" name="song_id" type="text"
                                             class="validate">
                                         <label>song_id</label>
                                     </div>
                                     <!-- Review: album_id, artist_id (used for update/insert) -->
-                                    <div class="input-field col s12 hide">
+                                    <div hidden class="input-field col s12">
                                         {% for song_id3, album_id, artist_id in song_info %}
                                         {% if song_id3==song_id %}
                                         <input value="{{ album_id }}" id="albumid" name="album_id" type="text"
@@ -112,20 +113,20 @@
                 <div class="modal" id="add-{{song_id}}">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="ModalLabel2">Hello there!</h5>
+                            <h5 class="modal-title" id="ModalLabel2">Hello {{user_name}}!</h5>
                         </div>
                         <div class="modal-body">
                             <form method="POST" action="/add_to_wishlist" class="col s12">
                                 <h4>You are adding {{ song_name }} by {{ artist_name }} to Wishlist.</h4>
                                 <div class="row add-to-wishlist-form">
                                     <!---- song_id (used for update/insert) ---->
-                                    <div class="input-field col s12 hide">
+                                    <div hidden class="input-field col s12">
                                         <input value="{{ song_id }}" id="songid" name="song_id" type="text"
                                             class="validate">
                                         <label>song_id</label>
                                     </div>
                                     <!---- album_id, artist_id (used for update/insert) ---->
-                                    <div class="input-field col s12 hide">
+                                    <div hidden class="input-field col s12">
                                         {% for song_id3, album_id, artist_id in song_info %}
                                         {% if song_id3==song_id %}
                                         <input value="{{ album_id }}" id="albumid" name="album_id" type="text"
@@ -154,6 +155,7 @@
 
     </div>
 
+    {% endfor %}
     {% endfor %}
 </div>
 {% endblock %}

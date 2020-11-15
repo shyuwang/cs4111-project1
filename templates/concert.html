@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %} Online Concert {% endblock %}
+{% block body %}
+<div class="row">
+    <div class="container">
+        <h2>Online Concerts</h2>
+        <!---search for concerts-->
+        <p>See the latest online concerts information! Or search to view the online concerts of the artists you are
+            interested in!</p>
+        <form action="{{ url_for('concert')}}" class="col s12" method="POST">
+            <div class="col concert-form">
+                <div class="input-field col s4">
+                    <input placeholder="artist name" id="search-artists" name="artists" type="text" class="validate">
+                </div>
+                <br>
+                <button type="submit" class="btn btn-primary" name="view">View</button>
+
+            </div>
+            <br>
+        </form>
+    </div>
+
+    {% for user_name in user_name %}
+    {% for artist_id, artist_name, concert_name, concert_time, link in concerts %}
+    <div class="container">
+        <div class="card">
+            <div class="card-content">
+                <p>
+                <h5>{{concert_name}}</h5> By {{artist_name}}
+                <br>
+                {{concert_time}}
+                <br>
+                Concert Link: <a href={{link}}>{{link}}</a>
+                <br>
+                </p>
+
+                <a class="register-concert-trigger" data-toggle="modal" href="#add-{{ artist_name |replace(' ','-')}}-{{concert_time|replace(' ','-')|replace(':','-')}}">Register for the
+                    Concert</a>
+                <!-- Button trigger modal -->
+
+                <!----Modal to register for online concerts-->
+                <div class="modal" id="add-{{ artist_name |replace(' ','-')}}-{{concert_time|replace(' ','-')|replace(':','-')}}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="ModalLabel3">Hello {{user_name}}!</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST" action="/register_concert" class="col s12">
+                                <h5>You are registering for {{ concert_name }} by {{ artist_name }} on {{concert_time}}.
+                                </h5>
+                                <div class="row register-concert-form">
+                                    <!---- concert_name & concert_time (used for update/insert) ---->
+                                    <div hidden class="input-field col s12">
+                                        <input value="{{ concert_name }}" id="concertname" name="concert_name"
+                                            type="text" class="validate">
+                                        <label>concert name</label>
+                                        <input value="{{ concert_time }}" id="concerttime" name="concert_time"
+                                            type="text" class="validate">
+                                        <label>concert time</label>
+                                    </div>
+                                    <!---- artist_id (used for update/insert) ---->
+                                    <div hidden class="input-field col s12">
+                                        {% for artist_id, concert_name2, concert_time2 in concert_info %}
+                                        {% if concert_name2==concert_name and concert_time2==concert_time %}
+                                        <input value="{{ artist_id }}" id="artistid" name="artist_id" type="text"
+                                            class="validate">
+                                        <label>artist_id</label>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Commit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+
+    </div>
+
+    {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

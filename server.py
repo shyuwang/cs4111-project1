@@ -360,7 +360,13 @@ def review():
   song_info = cursor.fetchall()
   cursor.close()
 
-  context = dict(reviews=reviews, song_ratings=song_ratings, song_info=song_info)
+  # username for this user
+  cursor = g.conn.execute("select u.username from users u where u.uid=%s",current_user.uid)
+  user_name = []
+  user_name = cursor.fetchone()
+  cursor.close()
+
+  context = dict(reviews=reviews, song_ratings=song_ratings, song_info=song_info, user_name=user_name)
   return render_template("review.html", **context)
 
 @app.route('/write_review', methods=['POST'])
@@ -394,6 +400,64 @@ def add_to_wishlist():
                       VALUES (%s, %s, %s, %s)''', (uid, song_id, request.form['album_id'], request.form['artist_id']))
     
   return redirect('/review')
+
+
+#------------------------------------------online concert------------------------------------------------------#
+
+@app.route("/concert", methods=['GET','POST'])
+@login_required
+def concert():
+  # concerts information of certain artist by search
+  concerts = []
+  if request.form.get('artists'):
+    artists = request.form.get('artists')
+
+    cursor = g.conn.execute('''SELECT a.artist_id, a.artist_name, o.concert_name, o.concert_time, o.link
+                                FROM online_concerts o JOIN artists a ON o.artist_id=a.artist_id
+                                WHERE a.artist_name ILIKE '%%%%%s%%%%' ''' % (artists))
+    concerts = cursor.fetchall()
+    cursor.close()
+  
+  else:
+    # latest 5 online concerts order by concert_time desc
+    cursor = g.conn.execute('''SELECT a.artist_id, a.artist_name, o.concert_name, o.concert_time, o.link
+                              FROM online_concerts o, artists a 
+                              WHERE o.artist_id=a.artist_id
+                              ORDER BY o.concert_time DESC LIMIT 5''')
+    concerts = cursor.fetchall()
+    cursor.close()
+  
+  # concert_name, concert_time and artist_id
+  concert_info = []
+  cursor = g.conn.execute("select artist_id, concert_name, concert_time from online_concerts")
+  concert_info = cursor.fetchall()
+  cursor.close()
+
+  # username for this user
+  cursor = g.conn.execute("select u.username from users u where u.uid=%s",current_user.uid)
+  user_name = []
+  user_name = cursor.fetchone()
+  cursor.close()
+
+  context = dict(concerts=concerts, concert_info=concert_info, user_name=user_name)
+  return render_template("concert.html", **context)
+
+@app.route("/register_concert", methods=['POST'])
+def register_concert():
+  uid = current_user.uid
+  cname = request.form['concert_name']
+  ctime = request.form['concert_time']
+
+  result = g.conn.execute('''UPDATE registers
+                              SET uid=%s
+                              WHERE uid=%s and concert_name=%s and concert_time=%s''', (uid, uid, cname, ctime))
+  
+  # check if the user has already registered for the online concert or not. if not, register
+  if result.rowcount == 0:
+    g.conn.execute('''INSERT INTO registers (artist_id, concert_name, concert_time, uid)
+                      VALUES (%s, %s, %s, %s)''', (request.form['artist_id'], cname, ctime, uid))
+    
+  return redirect('/concert')
 
 
 

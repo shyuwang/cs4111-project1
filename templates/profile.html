@@ -7,28 +7,26 @@
   {% for username in user_name %}
   <p>Username: {{username}}</p>
   {% endfor %}
-  <div class="card">
-    <div class="card-content">
-      <table>
-        <thead>
-          <tr>
-            <th>Song</th>
-            <th>Album</th>
-            <th>Artist</th>
-          </tr>
-        </thead>
+  <div>
+    <table border=2 width="75%">
+      <thead>
+        <tr bgcolor="#dcdcdc">
+          <th>Song</th>
+          <th>Album</th>
+          <th>Artist</th>
+        </tr>
+      </thead>
 
-        <tbody>
-          <tr>
-            {% for username, song_name, album_name, artist_name in wishs %}
-            <td>{{song_name}}</td>
-            <td>{{album_name}}</td>
-            <td>{{artist_name}}</td>
-          </tr>
-        </tbody>
-        {% endfor %}
-      </table>
-    </div>
+      <tbody>
+        <tr>
+          {% for username, song_name, album_name, artist_name in wishs %}
+          <td>{{song_name}}</td>
+          <td>{{album_name}}</td>
+          <td>{{artist_name}}</td>
+        </tr>
+      </tbody>
+      {% endfor %}
+    </table>
   </div>
 </div>
 
@@ -36,31 +34,29 @@
 
 <div class="container">
   <h2>My Online Concert Registration</h2>
-  <div class="card">
-    <div class="card-content">
-      <table>
-        <thead>
-          <tr>
-            <th>Artist</th>
-            <th>Concert name</th>
-            <th>Time</th>
-            <th>Link</th>
-          </tr>
-        </thead>
+  <div>
+    <table border=2 width="75%">
+      <thead>
+        <tr bgcolor="#dcdcdc">
+          <th>Artist</th>
+          <th>Concert name</th>
+          <th>Time</th>
+          <th>Link</th>
+        </tr>
+      </thead>
 
-        <tbody>
-          {% for artist_name, concert_name, concert_time, link in concert_reg %}
-          <tr>
-            <td>{{artist_name}}</td>
-            <td>{{concert_name}}</td>
-            <td>{{concert_time}}</td>
-            <td>{{link}}</td>
-          </tr>
+      <tbody>
+        {% for artist_name, concert_name, concert_time, link in concert_reg %}
+        <tr>
+          <td>{{artist_name}}</td>
+          <td>{{concert_name}}</td>
+          <td>{{concert_time}}</td>
+          <td>{{link}}</td>
+        </tr>
 
-        </tbody>
-        {% endfor %}
-      </table>
-    </div>
+      </tbody>
+      {% endfor %}
+    </table>
   </div>
 </div>
 <br>
