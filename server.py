@@ -324,23 +324,28 @@ def add_to_wishlist():
 @app.route("/concert", methods=['GET','POST'])
 @login_required
 def concert():
-  # concerts information of certain artist by search
+  # today's datetime
+  now_date = datetime.now()
+
+  # future concerts information of certain artist by search
   concerts = []
   if request.form.get('artists'):
     artists = request.form.get('artists')
 
     cursor = g.conn.execute('''SELECT a.artist_id, a.artist_name, o.concert_name, o.concert_time, o.link
                                 FROM online_concerts o JOIN artists a ON o.artist_id=a.artist_id
-                                WHERE a.artist_name ILIKE '%%%%%s%%%%' ''' % (artists))
+                                WHERE a.artist_name ILIKE '%%%%%s%%%%' 
+                                AND o.concert_time > %s ''' % (artists, now_date))
     concerts = cursor.fetchall()
     cursor.close()
   
   else:
-    # latest 5 online concerts order by concert_time desc
+    # all future online concerts order by concert_time asc
     cursor = g.conn.execute('''SELECT a.artist_id, a.artist_name, o.concert_name, o.concert_time, o.link
                               FROM online_concerts o, artists a 
                               WHERE o.artist_id=a.artist_id
-                              ORDER BY o.concert_time DESC LIMIT 5''')
+                              AND o.concert_time > %s
+                              ORDER BY o.concert_time ASC''', now_date)
     concerts = cursor.fetchall()
     cursor.close()
   
