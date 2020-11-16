@@ -42,11 +42,10 @@
 }
 .carousel-caption 
 {
-    background: rgba(0, 0, 0, 0.2);
     top: 50%;
 }
 .carousel-caption h5 
 {
-    background-color: rgba(17, 185, 25, 0.596)!important;
-    font-size: 80px!important;
+    background-color: #555!important;
+    font-size: 40px!important;
 }
