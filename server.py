@@ -169,13 +169,13 @@ def profile():
   cursor.close()
 
   # wishlist for this user
-  cursor1 = g.conn.execute('''SELECT u.username, s.song_name, al.album_name, a.artist_name 
+  cursor = g.conn.execute('''SELECT u.username, s.song_name, al.album_name, a.artist_name 
                               FROM wishlists w, users u, song_contain s, artists a, al_release al 
                               WHERE w.uid=u.uid AND w.song_id=s.song_id AND w.album_id=al.album_id 
                               AND w.artist_id=a.artist_id AND u.uid=%s''',current_user.uid)
   wishs = []
-  wishs = cursor1.fetchall()
-  cursor1.close()
+  wishs = cursor.fetchall()
+  cursor.close()
 
   # online concert registration for this user order by concert time asc
   cursor = g.conn.execute('''SELECT a.artist_name, r.concert_name, r.concert_time, o.link 
@@ -190,18 +190,7 @@ def profile():
 
   # recommendation based on this user's wishlist
   # recommend songs whose artists are of the same genre the user likes
-  # if wishlist is empty, return the most 5 popular songs in our database
-  if cursor1.rowcount==0:
-    cursor = g.conn.execute('''SELECT s.song_name, al.album_name, a.artist_name, s.popularity
-                                FROM song_contain s, Al_release al, Artists a
-                                WHERE s.album_id=al.album_id AND s.artist_id=a.artist_id
-                                ORDER BY s.popularity DESC LIMIT 5''')
-    recommendations = []
-    recommendations = cursor.fetchall()
-    cursor.close()
-  
-  else:
-    cursor = g.conn.execute('''
+  cursor = g.conn.execute('''
                             SELECT DISTINCT s.song_name, al.album_name, t.artist_name, s.popularity
                             FROM (SELECT artist_id, artist_name, UNNEST(genres) as g FROM artists) t 
                             JOIN Song_contain s ON t.artist_id=s.artist_id
@@ -210,9 +199,9 @@ def profile():
                             AND s.song_id NOT IN (SELECT song_id FROM Wishlists WHERE uid=%s)
                             ORDER BY s.popularity DESC LIMIT 5 ''', current_user.uid,current_user.uid)
   
-    recommendations = []
-    recommendations = cursor.fetchall()
-    cursor.close()
+  recommendations = []
+  recommendations = cursor.fetchall()
+  cursor.close()
 
   context = dict(wishs=wishs, concert_reg=concert_reg, user_name=user_name, recommendations=recommendations)
   return render_template("profile.html", **context)
