@@ -336,7 +336,7 @@ def concert():
     cursor = g.conn.execute('''SELECT a.artist_id, a.artist_name, o.concert_name, o.concert_time, o.link
                                 FROM online_concerts o JOIN artists a ON o.artist_id=a.artist_id
                                 WHERE a.artist_name ILIKE '%%%%%s%%%%' 
-                                AND o.concert_time > %s ''' % (artists, now_date))
+                                AND o.concert_time > '%s' ''' % (artists, now_date))
     concerts = cursor.fetchall()
     cursor.close()
   
